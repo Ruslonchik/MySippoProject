@@ -6,7 +6,8 @@ import pygame
 from numba import njit
 
 @njit(fastmath=True, cache=True)
-def ray_casting_npc_player(npc_x, npc_y, blocked_doors, world_map, player_pos):
+#Ускоренная рейкастинг функция ускоренная модулем нумба, пускает всего 1 луч, рез:ответ:персонажв прямой видимости нпс
+def ray_casting_npc_player(npc_x, npc_y, blocked_doors, world_map, player_pos): #Анимация нападения на игрока
     ox, oy = player_pos
     xm, ym = mapping(ox, oy)
     delta_x, delta_y = ox - npc_x, oy - npc_y
@@ -39,7 +40,7 @@ def ray_casting_npc_player(npc_x, npc_y, blocked_doors, world_map, player_pos):
         y += dy * TILE
     return True
 
-
+#Класс интерактива с атрибутами экземпляров: персонаж, рисование и спрайты
 class Interaction:
     def __init__(self, player, sprites, drawing):
         self.player = player
@@ -47,46 +48,46 @@ class Interaction:
         self.drawing = drawing
         self.pain_sound = pygame.mixer.Sound('sound/pain.wav')
 
-    def interaction_objects(self):
+    def interaction_objects(self): #находится ли какой-нибудь живой небессмертный объект в области выстрела?
         if self.player.shot and self.drawing.shot_animation_trigger:
             for obj in sorted(self.sprites.list_of_objects, key=lambda obj: obj.distance_to_sprite):
                 if obj.is_on_fire[1]:
-                    if obj.is_dead != 'immortal' and not obj.is_dead:
+                    if obj.is_dead != 'immortal' and not obj.is_dead: #анимация смерти объекта и делаем проходимым
                         if ray_casting_npc_player(obj.x, obj.y,
                                                   self.sprites.blocked_doors,
                                                   world_map, self.player.pos):
-                            if obj.flag == 'npc':
+                            if obj.flag == 'npc': #звук крика при попадании пули по нпс
                                 self.pain_sound.play()
                             obj.is_dead = True
                             obj.blocked = None
                             self.drawing.shot_animation_trigger = False
-                    if obj.flag in {'door_h', 'door_v'} and obj.distance_to_sprite < TILE:
+                    if obj.flag in {'door_h', 'door_v'} and obj.distance_to_sprite < TILE: #Условие открытия двери
                         obj.door_open_trigger = True
                         obj.blocked = None
-                    break
-
+                    break #обрываем чтобы одной пулей не убивать несколько объектов
+#метод запускающий анимаию взаимодействия нпс
     def npc_action(self):
         for obj in self.sprites.list_of_objects:
             if obj.flag == 'npc' and not obj.is_dead:
-                if ray_casting_npc_player(obj.x, obj.y,
+                if ray_casting_npc_player(obj.x, obj.y, #запускается у всех объектов кто в прямой видимости
                                           self.sprites.blocked_doors,
                                           world_map, self.player.pos):
                     obj.npc_action_trigger = True
                     self.npc_move(obj)
                 else:
                     obj.npc_action_trigger = False
-
+#заставляем нпс двигаться в нашу сторону, тогда, когда расстояние до него больше размера клетки на карте
     def npc_move(self, obj):
         if abs(obj.distance_to_sprite) > TILE:
             dx = obj.x - self.player.pos[0]
             dy = obj.y - self.player.pos[1]
             obj.x = obj.x + 1 if dx < 0 else obj.x - 1
             obj.y = obj.y + 1 if dy < 0 else obj.y - 1
-
+#Удаляем открытые двери(метод обнаруживающий и удаляющий ненужные объекты)
     def clear_world(self):
         deleted_objects = self.sprites.list_of_objects[:]
         [self.sprites.list_of_objects.remove(obj) for obj in deleted_objects if obj.delete]
-
+#концовка запускатся в тот момент когда не осталось ни одного нпс на карте
     def check_win(self):
         if not len([obj for obj in self.sprites.list_of_objects if obj.flag == 'npc' and not obj.is_dead]):
             pygame.mixer.music.stop()

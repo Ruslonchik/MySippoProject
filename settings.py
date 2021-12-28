@@ -1,6 +1,7 @@
 import math
 
 # game settings
+#Разрешение окна, дополнительные константы
 WIDTH = 1200
 HEIGHT = 800
 HALF_WIDTH = WIDTH // 2
@@ -12,7 +13,7 @@ TILE = 100
 FPS_POS = (WIDTH - 65, 5)
 
 # minimap settings
-MINIMAP_SCALE = 5
+MINIMAP_SCALE = 5 #Уменьшили размер изначального 2д мира в 5 раз
 MINIMAP_RES = (WIDTH // MINIMAP_SCALE, HEIGHT // MINIMAP_SCALE)
 MAP_SCALE = 2 * MINIMAP_SCALE # 1 -> 12 x 8, 2 -> 24 x 16, 3 -> 36 x 24
 MAP_TILE = TILE // MAP_SCALE
@@ -34,14 +35,14 @@ CENTER_RAY = NUM_RAYS // 2 - 1
 FAKE_RAYS = 100
 FAKE_RAYS_RANGE = NUM_RAYS - 1 + 2 * FAKE_RAYS
 
-# texture settings (1200 x 1200)
+# texture settings (1200 x 1200) размер текстуры, высота и ширина которой равны нашему разрешению по ширине гл окна
 TEXTURE_WIDTH = 1200
 TEXTURE_HEIGHT = 1200
 HALF_TEXTURE_HEIGHT = TEXTURE_HEIGHT // 2
-TEXTURE_SCALE = TEXTURE_WIDTH // TILE
+TEXTURE_SCALE = TEXTURE_WIDTH // TILE #Определяем масштаб коэф, чтобы она полностью влезла в размер квадрата карты
 
 # player settings
-player_pos = (HALF_WIDTH // 4, HALF_HEIGHT - 50)
+player_pos = (HALF_WIDTH // 4, HALF_HEIGHT - 50) #Меняем начально положение игрока
 player_angle = 0
 player_speed = 3
 

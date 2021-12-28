@@ -23,14 +23,15 @@ matrix_map = [
     [1, _, _, _, _, _, _, _, _, _, 4, _, _, _, _, _, _, _, _, _, _, _, _, 1],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ]
-
+#Значения размеров игрового мира, для вычисления правильной длинны луча рейкастинг функции
 WORLD_WIDTH = len(matrix_map[0]) * TILE
 WORLD_HEIGHT = len(matrix_map) * TILE
-world_map = Dict.empty(key_type=types.UniTuple(int32, 2), value_type=int32)
+world_map = Dict.empty(key_type=types.UniTuple(int32, 2), value_type=int32) #пустой импортированный словарь ключи инт32
 mini_map = set()
-collision_walls = []
+collision_walls = [] #список стен, где каждая стена экземпляр класса рект, квадрат со стороной размра нашей стены
 for j, row in enumerate(matrix_map):
     for i, char in enumerate(row):
+        #Координаты стен храним в словаре, гдеключи словаря - координаты стен, значения - номера текстур
         if char:
             mini_map.add((i * MAP_TILE, j * MAP_TILE))
             collision_walls.append(pygame.Rect(i * TILE, j * TILE, TILE, TILE))

@@ -8,12 +8,13 @@ import sys
 
 class Drawing:
     def __init__(self, sc, sc_map, player, clock):
-        self.sc = sc
-        self.sc_map = sc_map
+        self.sc = sc #карта
+        self.sc_map = sc_map #миникарта
         self.player = player
-        self.clock = clock
+        self.clock = clock #фпс
         self.font = pygame.font.SysFont('Arial', 36, bold=True)
         self.font_win = pygame.font.Font('font/font.ttf', 144)
+        #Атрибут для текстур, загружаем изображения
         self.textures = {1: pygame.image.load('img/wall3.png').convert(),
                          2: pygame.image.load('img/wall4.png').convert(),
                          3: pygame.image.load('img/wall5.png').convert(),
@@ -21,58 +22,61 @@ class Drawing:
                          'S': pygame.image.load('img/sky2.png').convert()
                          }
         # menu
-        self.menu_trigger = True
+        self.menu_trigger = True #параметр триггера меню
         self.menu_picture = pygame.image.load('img/bg.jpg').convert()
-        # weapon parameters
+        # weapon parameters (механизм анимации оружия как и анимация спрайтов с помощью deque из модуля)
         self.weapon_base_sprite = pygame.image.load('sprites/weapons/shotgun/base/0.png').convert_alpha()
         self.weapon_shot_animation = deque([pygame.image.load(f'sprites/weapons/shotgun/shot/{i}.png').convert_alpha()
                                             for i in range(20)])
-        self.weapon_rect = self.weapon_base_sprite.get_rect()
+        self.weapon_rect = self.weapon_base_sprite.get_rect() #удобное определение позиции спрайтов с оружием
         self.weapon_pos = (HALF_WIDTH - self.weapon_rect.width // 2, HEIGHT - self.weapon_rect.height)
         self.shot_length = len(self.weapon_shot_animation)
         self.shot_length_count = 0
         self.shot_animation_speed = 3
         self.shot_animation_count = 0
         self.shot_animation_trigger = True
-        self.shot_sound = pygame.mixer.Sound('sound/shotgun.wav')
-        # sfx parameters
+        self.shot_sound = pygame.mixer.Sound('sound/shotgun.wav') #Загружаем звук выстрела
+        # sfx parameters(эффект от разрыва пули)
         self.sfx = deque([pygame.image.load(f'sprites/weapons/sfx/{i}.png').convert_alpha() for i in range(9)])
         self.sfx_length_count = 0
         self.sfx_length = len(self.sfx)
 
-    def background(self, angle):
+    def background(self, angle): #Метод построения фона с значением угла игрока
+        #Вычисляем смещение по текстуре путем нахождения остатка от деления обратного направления игрока на ширину окна
         sky_offset = -10 * math.degrees(angle) % WIDTH
+        #Рисуем 3 участка неба в зависимости от смещения, чтоб не было видно пробелов
         self.sc.blit(self.textures['S'], (sky_offset, 0))
         self.sc.blit(self.textures['S'], (sky_offset - WIDTH, 0))
         self.sc.blit(self.textures['S'], (sky_offset + WIDTH, 0))
         pygame.draw.rect(self.sc, DARKGRAY, (0, HALF_HEIGHT, WIDTH, HALF_HEIGHT))
-
+#Метод для рисования(рейкаст не рисует, а лишь возвращает список параметров:дальность до стены, область текстуры...)
     def world(self, world_objects):
-        for obj in sorted(world_objects, key=lambda n: n[0], reverse=True):
+        for obj in sorted(world_objects, key=lambda n: n[0], reverse=True): #начнем отрисовку с дальних объектов
             if obj[0]:
-                _, object, object_pos = obj
-                self.sc.blit(object, object_pos)
-
+                _, object, object_pos = obj #отсекаем ложные значения для спрайтов
+                self.sc.blit(object, object_pos) #наносим объекты на главную поверхность
     def fps(self, clock):
         display_fps = str(int(clock.get_fps()))
         render = self.font.render(display_fps, 0, DARKORANGE)
         self.sc.blit(render, FPS_POS)
 
+#Метод для вывода миникарты
     def mini_map(self, player):
-        self.sc_map.fill(BLACK)
-        map_x, map_y = player.x // MAP_SCALE, player.y // MAP_SCALE
+        self.sc_map.fill(BLACK) #Закрашиваем поверхность в черный
+        map_x, map_y = player.x // MAP_SCALE, player.y // MAP_SCALE #Позиция игрока, масштабированная х5
+        #Элементы миникарты выведем на отдельную поверхность
         pygame.draw.line(self.sc_map, YELLOW, (map_x, map_y), (map_x + 12 * math.cos(player.angle),
                                                  map_y + 12 * math.sin(player.angle)), 2)
         pygame.draw.circle(self.sc_map, RED, (int(map_x), int(map_y)), 5)
         for x, y in mini_map:
             pygame.draw.rect(self.sc_map, DARKBROWN, (x, y, MAP_TILE, MAP_TILE))
-        self.sc.blit(self.sc_map, MAP_POS)
-
+        self.sc.blit(self.sc_map, MAP_POS) #Размещаем миникарту в левом нижнем углу главной поверхности
+#в класс для рисования будем получать экземпляр класса игрок и от нажатия лкм будем проигрывать спрайты со скоростью ан
     def player_weapon(self, shots):
         if self.player.shot:
-            if not self.shot_length_count:
+            if not self.shot_length_count: #звук воспроизводится в момент старта анимации выстрела
                 self.shot_sound.play()
-            self.shot_projection = min(shots)[1] // 2
+            self.shot_projection = min(shots)[1] // 2 #кто ближе: стена или спрайт? берем минимум расстояния от них
             self.bullet_sfx()
             shot_sprite = self.weapon_shot_animation[0]
             self.sc.blit(shot_sprite, self.weapon_pos)
@@ -89,8 +93,8 @@ class Drawing:
                 self.shot_animation_trigger = True
         else:
             self.sc.blit(self.weapon_base_sprite, self.weapon_pos)
-
-    def bullet_sfx(self):
+#Отдельный метод для разрыва пули (механизм для реализация анимации, где масштабируем по высоте спрайтовой картинки)
+    def bullet_sfx(self): #откуда получаем эффект от пулипо ближайшему объекту
         if self.sfx_length_count < self.sfx_length:
             sfx = pygame.transform.scale(self.sfx[0], (self.shot_projection, self.shot_projection))
             sfx_rect = sfx.get_rect()
@@ -106,7 +110,7 @@ class Drawing:
         self.sc.blit(render, (rect.centerx - 430, rect.centery - 140))
         pygame.display.flip()
         self.clock.tick(15)
-
+#Метод для меню,
     def menu(self):
         x = 0
         button_font = pygame.font.Font('font/font.ttf', 72)
@@ -123,7 +127,7 @@ class Drawing:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-
+#меняем цвет надписи и по координате x будет перемещаться картинка,
             self.sc.blit(self.menu_picture, (0, 0), (x % WIDTH, HALF_HEIGHT, WIDTH, HEIGHT))
             x += 1
 
@@ -134,9 +138,9 @@ class Drawing:
             self.sc.blit(exit, (button_exit.centerx - 85, button_exit.centery - 70))
 
             color = randrange(40)
-            label = label_font.render('DOOMPy', 1, (color, color, color))
+            label = label_font.render('SiPPO', 1, (color, color, color))
             self.sc.blit(label, (15, -30))
-
+#если мышка над кнопкой, только фон кнопки закрашиваем, и по щелчку запускаем или отключаем
             mouse_pos = pygame.mouse.get_pos()
             mouse_click = pygame.mouse.get_pressed()
             if button_start.collidepoint(mouse_pos):
